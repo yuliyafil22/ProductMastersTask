@@ -1,6 +1,125 @@
-## Быстрый старт
+# 🤖 AI-Powered Support Lead Extractor & Classifier
 
-1. Клонируйте репозиторий:
-   ```bash
-   git clone [https://github.com/username/repository-name.git](https://github.com/username/repository-name.git)
-   cd repository-namea
+> Production-ready пайплайн на Python для автоматической классификации, извлечения структурированных данных (Structured Outputs) и валидации входящих обращений клиентской поддержки e-commerce.
+
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![OpenAI API](https://img.shields.io/badge/OpenAI-gpt--4o--mini-green.svg)](https://platform.openai.com/)
+[![Pydantic v2](https://img.shields.io/badge/Pydantic-v2.7%2B-red.svg)](https://docs.pydantic.dev/)
+
+---
+
+## 📌 Описание проекта и Архитектура
+
+Проект решает задачу автоматической обработки входящих писем и сообщений поддержки (30–40+ сообщений в день). Система использует модель **`gpt-4o-mini`** с механизмом **Structured Outputs (Strict JSON Schema)** через Pydantic v2.
+
+Пайплайн спроектирован с учетом устойчивости к сбоям API, галлюцинациям LLM и сложным краевым случаям (Edge Cases):
+
+```text
+[data/input_emails.json]
+       │
+       ▼
+[1. Валидация входных данных] ➔ Pydantic (InputEmailSchema)
+       │
+       ▼
+[2. Извлечение сущностей] ➔ OpenAI API (gpt-4o-mini + Strict JSON Schema)
+       │
+       ├──── ❌ Ошибка API / Rate Limit (429/500) ➔ [Try-Catch / Retry Logging]
+       │
+       ▼
+[3. Валидация и нормализация] ➔ Pydantic (EmailData validation)
+       │
+       ▼
+[4. Экспорт результатов] ➔ Pandas / OpenPyXL ➔ [results.xlsx]
+
+
+🛠 Ключевые возможности
+
+Strict Structured Outputs: Использование методa SDK client.beta.chat.completions.parse гарантирует 100% соблюдение заданной Pydantic-схемы.
+
+Обработка Edge Cases (Краевых случаев):
+
+Извлечение телефона только автора письма (автоматический пропуск системных телефонов из юридических футеров и подписей).
+
+Распознавание неявной срочности и сарказма (например: «Спасибо за "быструю" доставку, жду 3 недели!» ➔ Urgency: High, Error Flag: True).
+
+Фиксация отсутствующих, написанных прописью или невалидных номеров с помощью флага error_flag.
+
+Безопасная обработка ошибок: Изолированная обработка каждого обращения в цикле try-except препятствует падению всего пайплайна при сбое отдельного запроса.
+
+Экспорт в Excel: Автоматический отчет в .xlsx с подробным обоснованием принятых моделью решений (reasoning).
+
+
+📂 Структура проекта
+
+email_automation/
+├── data/
+│   └── input_emails.json     # Входящий датасет писем (35 обращений, включая edge cases)
+├── .env.example              # Шаблон переменных окружения (безопасность API-ключа)
+├── .gitignore                # Исключение конфиденциальных данных и виртуального окружения
+├── main.py                   # Модель данных Pydantic и логика работы с OpenAI API
+├── run_pipeline.py           # Точка входа: проверка датасета, прогон пайплайна и экспорт
+├── results.xlsx              # Итоговый Excel-файл с выгрузкой результатов
+├── requirements.txt          # Список зависимостей Python
+└── README.md                 # Документация проекта
+
+
+🚀 Инструкция по установке и запуску
+
+1. Клонирование репозитория
+git clone [https://github.com/your-username/email-automation-pipeline.git](https://github.com/your-username/email-automation-pipeline.git)
+cd email-automation-pipeline
+
+2. Настройка виртуального окружения (Virtualenv)
+
+Для macOS / Linux:
+python3 -m venv .venv
+source .venv/bin/activate
+
+Для Windows (PowerShell / CMD):
+python -m venv .venv
+.venv\Scripts\activate
+
+Установка необходимых зависимостей:
+pip install -r requirements.txt
+
+3. Конфигурация API-ключа OpenAI (Безопасность)
+Скопируйте шаблонный файл .env.example и создайте ваш локальный .env:
+cp .env.example .env
+
+Откройте созданный файл .env и вставьте ваш действующий ключ OpenAI:
+OPENAI_API_KEY=sk-proj-your-actual-openai-api-key
+
+⚙️ Запуск автоматизации
+Убедитесь, что исходный файл data/input_emails.json находится на своем месте, и запустите главный скрипт:
+python run_pipeline.py
+
+Что происходит при запуске:
+
+Скрипт проверяет наличие и валидность структуры data/input_emails.json.
+
+Поочередно отправляет письма в gpt-4o-mini для извлечения структурированных данных.
+
+Выводит ход выполнения в консоль PyCharm / Терминала.
+
+Создает/обновляет итоговый файл results.xlsx в корне проекта.
+
+
+📊 Схема данных (Pydantic Output Schema)
+
+class EmailData(BaseModel):
+    name: Optional[str]        # Имя отправителя (если не указано — null)
+    phone: Optional[str]       # Номер телефона автора
+    subject: str               # Краткая тема обращения (2-5 слов)
+    urgency: Literal['Low', 'Medium', 'High'] # Уровень срочности
+    error_flag: bool           # Флаг проблем в данных / сарказма / отсутствия телефона
+    reasoning: str            # Объяснение от LLM, почему выставила такие данные
+
+
+💰 Экономика и лимиты (Calculations & Economics)
+Расчет стоимости выполнен для нагрузки 40 писем в день (~1 200 писем в месяц) с использованием модели gpt-4o-mini:
+Параметр                      Расчет / Значение
+Средний Input                 ~450 токенов / письмо ($0.15 / 1M tokens)
+Средний Output                ~110 токенов / письмо ($0.60 / 1M tokens)
+Стоимость 1,000 писем          ~$0.13 USD
+Месячный расход (1,200 писем)  ~$0.16 USD
+Пиковая нагрузка               ~40 RPM (абсолютно безопасно для Tier 1 OpenAI Limits)
