@@ -10,8 +10,7 @@ ENV/
 __pycache__/
 *.py[cod]
 
-# Результаты работы скрипта и локальные данные
-results.xlsx
+# Локальные данные
 data/input_emails.json
 
 # Настройки PyCharm
