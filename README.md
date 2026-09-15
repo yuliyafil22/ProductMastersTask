@@ -7,9 +7,9 @@
 [![Pydantic v2](https://img.shields.io/badge/Pydantic-v2.7%2B-red.svg)](https://docs.pydantic.dev/)
 
 ---
-📊 Результаты работы пайплайна
+# 📊 Результаты работы пайплайна
 
-![Результаты обработки в Excel](data/results_preview.png)
+Результаты обработки: скриншот Excel в папке data/results_preview.png
 
 
 ## 📌 Описание проекта и Архитектура
