@@ -1,0 +1,18 @@
+# Секреты и конфигурационные файлы
+.env
+
+# Виртуальное окружение Python
+.venv/
+venv/
+ENV/
+
+# Кеш Python
+__pycache__/
+*.py[cod]
+
+# Результаты работы скрипта и локальные данные
+results.xlsx
+data/input_emails.json
+
+# Настройки PyCharm
+.idea/
